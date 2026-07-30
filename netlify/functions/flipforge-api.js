@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 
 const CONTRACT_VERSION = "1.0";
+const TRUSTED_TENANT_HEADER = "X-FlipForge-Tenant-Id";
 const DEFAULT_TIMEOUT_MS = 5000;
 const MAX_TIMEOUT_MS = 10000;
 const DEFAULT_MAX_RESPONSE_BYTES = 1_000_000;
@@ -10,10 +11,10 @@ const ROUTES = [
   { method: "GET", pattern: /^\/api\/v1\/health$/ },
   { method: "GET", pattern: /^\/api\/v1\/dashboard$/ },
   { method: "GET", pattern: /^\/api\/v1\/opportunities$/ },
-  { method: "GET", pattern: /^\/api\/v1\/opportunities\/[A-Za-z0-9_-]+$/ },
+  { method: "GET", pattern: /^\/api\/v1\/opportunities\/[A-Za-z0-9._:-]+$/ },
   { method: "GET", pattern: /^\/api\/v1\/compare$/ },
-  { method: "GET", pattern: /^\/api\/v1\/psa-advisor\/[A-Za-z0-9_-]+$/ },
-  { method: "GET", pattern: /^\/api\/v1\/evidence\/[A-Za-z0-9_-]+$/ },
+  { method: "GET", pattern: /^\/api\/v1\/psa-advisor\/[A-Za-z0-9._:-]+$/ },
+  { method: "GET", pattern: /^\/api\/v1\/evidence\/[A-Za-z0-9._:-]+$/ },
   { method: "GET", pattern: /^\/api\/v1\/portfolio$/ },
   { method: "GET", pattern: /^\/api\/v1\/alerts$/ },
   { method: "GET", pattern: /^\/api\/v1\/account$/ },
@@ -131,6 +132,25 @@ function authenticatedUser(context) {
     : null;
 }
 
+function validTrustedTenantId(value) {
+  const tenantId = typeof value === "string" ? value.trim() : "";
+  return /^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(tenantId) ? tenantId : null;
+}
+
+function authenticatedTenantId(user) {
+  return validTrustedTenantId(user && user.sub);
+}
+
+function previewTenantId() {
+  if (!previewBypassAllowed()) return null;
+  return validTrustedTenantId(process.env.FLIPFORGE_API_PREVIEW_TENANT_ID);
+}
+
+function validIdempotencyKey(value) {
+  const key = typeof value === "string" ? value.trim() : "";
+  return /^[A-Za-z0-9._-]{8,100}$/.test(key) ? key : null;
+}
+
 function queryString(event) {
   if (event && typeof event.rawQuery === "string" && event.rawQuery) {
     return event.rawQuery;
@@ -142,22 +162,49 @@ function queryString(event) {
   ).toString();
 }
 
-function validUpstreamEnvelope(payload, correlationId) {
+function validTenantIsolation(data) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return false;
+  const isolation = data.tenantIsolation;
+  return Boolean(
+    isolation &&
+      typeof isolation === "object" &&
+      !Array.isArray(isolation) &&
+      isolation.enforced === true &&
+      isolation.defaultAccess === "DENY" &&
+      typeof isolation.tenantAuditKey === "string" &&
+      /^[a-f0-9]{12}$/.test(isolation.tenantAuditKey)
+  );
+}
+
+function validUpstreamEnvelope(payload, correlationId, method, path) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) return false;
   if (!payload.meta || typeof payload.meta !== "object") return false;
 
   const meta = payload.meta;
-  return (
-    meta.contractVersion === CONTRACT_VERSION &&
-    typeof meta.engineVersion === "string" &&
-    meta.engineVersion.length > 0 &&
-    meta.authority === "Smart Opportunity" &&
-    meta.gradingAuthority === "Existing PSA intelligence" &&
-    typeof meta.generatedAt === "string" &&
-    meta.generatedAt.length > 0 &&
-    meta.correlationId === correlationId &&
-    Object.prototype.hasOwnProperty.call(payload, "data")
-  );
+  if (
+    meta.contractVersion !== CONTRACT_VERSION ||
+    typeof meta.engineVersion !== "string" ||
+    meta.engineVersion.length === 0 ||
+    meta.authority !== "Smart Opportunity" ||
+    meta.gradingAuthority !== "Existing PSA intelligence" ||
+    typeof meta.generatedAt !== "string" ||
+    meta.generatedAt.length === 0 ||
+    meta.correlationId !== correlationId ||
+    !Object.prototype.hasOwnProperty.call(payload, "data") ||
+    !validTenantIsolation(payload.data)
+  ) {
+    return false;
+  }
+
+  if (method === "POST" && path === "/api/v1/evaluations") {
+    return Boolean(
+      payload.data.tenantOwned === true &&
+        payload.data.tenantIsolation.idempotencyScope === "TENANT" &&
+        payload.data.tenantIsolation.opportunityOwnership === "GRANTED_ON_COMPLETION" &&
+        payload.data.transactionAuthorized === false
+    );
+  }
+  return true;
 }
 
 async function readLimitedJson(response, maxBytes) {
@@ -197,7 +244,10 @@ function healthPayload(correlationId) {
       status: bridgeEnabled() && upstreamConfigured() ? "configured" : "disabled",
       bridgeEnabled: bridgeEnabled(),
       upstreamConfigured: upstreamConfigured(),
-      authenticationRequired: !previewBypassAllowed(),
+      authenticationRequired: true,
+      trustedTenantContextForwardedServerSide: true,
+      trustedTenantHeader: TRUSTED_TENANT_HEADER,
+      serviceTokenBrowserExposed: false,
       productionPreviewBypassAllowed: false
     }
   };
@@ -225,7 +275,7 @@ exports.handler = async function handler(event, context) {
       headers: {
         ...securityHeaders(event, correlationId),
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Authorization, Content-Type, X-Correlation-Id",
+        "Access-Control-Allow-Headers": "Authorization, Content-Type, Idempotency-Key, X-Correlation-Id",
         "Access-Control-Max-Age": "600"
       },
       body: ""
@@ -256,11 +306,12 @@ exports.handler = async function handler(event, context) {
   }
 
   const user = authenticatedUser(context);
-  if (!user && !previewBypassAllowed()) {
+  const tenantId = authenticatedTenantId(user) || previewTenantId();
+  if (!tenantId) {
     return jsonResponse(
       event,
       401,
-      errorEnvelope("AUTHENTICATION_REQUIRED", "Authentication is required for FlipForge data routes.", correlationId),
+      errorEnvelope("AUTHENTICATION_REQUIRED", "A valid authenticated FlipForge identity is required for data routes.", correlationId),
       correlationId,
       { "WWW-Authenticate": "Bearer realm=\"FlipForge\"" }
     );
@@ -280,6 +331,16 @@ exports.handler = async function handler(event, context) {
       event,
       503,
       errorEnvelope("UPSTREAM_NOT_CONFIGURED", "The authoritative FlipForge service is not configured.", correlationId),
+      correlationId
+    );
+  }
+
+  const idempotencyKey = method === "POST" ? validIdempotencyKey(header(event, "idempotency-key")) : null;
+  if (method === "POST" && !idempotencyKey) {
+    return jsonResponse(
+      event,
+      400,
+      errorEnvelope("IDEMPOTENCY_KEY_REQUIRED", "A valid Idempotency-Key is required for evaluations.", correlationId),
       correlationId
     );
   }
@@ -320,7 +381,9 @@ exports.handler = async function handler(event, context) {
         Authorization: `Bearer ${process.env.FLIPFORGE_API_SERVICE_TOKEN}`,
         "X-Correlation-Id": correlationId,
         "X-FlipForge-Contract-Version": CONTRACT_VERSION,
-        ...(user && user.sub ? { "X-FlipForge-User-Id": String(user.sub) } : {})
+        [TRUSTED_TENANT_HEADER]: tenantId,
+        "X-Forwarded-Proto": "https",
+        ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {})
       },
       body: method === "POST" ? body : undefined,
       signal: controller.signal,
@@ -349,11 +412,11 @@ exports.handler = async function handler(event, context) {
       );
     }
 
-    if (!validUpstreamEnvelope(payload, correlationId)) {
+    if (!validUpstreamEnvelope(payload, correlationId, method, path)) {
       return jsonResponse(
         event,
         502,
-        errorEnvelope("UPSTREAM_CONTRACT_INVALID", "The authoritative response did not satisfy the FlipForge contract.", correlationId),
+        errorEnvelope("UPSTREAM_CONTRACT_INVALID", "The authoritative response did not satisfy the FlipForge tenant contract.", correlationId),
         correlationId
       );
     }
@@ -388,7 +451,12 @@ exports.handler = async function handler(event, context) {
       })
     );
 
-    return jsonResponse(event, code === "UPSTREAM_RESPONSE_TOO_LARGE" ? 502 : 503, errorEnvelope(code, message, correlationId), correlationId);
+    return jsonResponse(
+      event,
+      code === "UPSTREAM_RESPONSE_TOO_LARGE" ? 502 : 503,
+      errorEnvelope(code, message, correlationId),
+      correlationId
+    );
   } finally {
     clearTimeout(timeout);
   }

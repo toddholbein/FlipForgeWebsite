@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build:identity && npm run validate:identity && npm run validate:account-lifecycle && npm run validate:customer-intelligence && npm run validate:customer-dashboard && npm run validate:customer-compare && npm run validate:customer-management && npm run validate:customer-portfolio && npm run validate:customer-lifecycle && npm run validate:customer-export && npm run validate:customer-discovery && npm run validate:customer-entitlements && npm run validate:evaluation-quota-boundary && npm run validate:private-beta-operations-boundary && npm run validate:paddle-customer-checkout && npm run validate:paddle-customer-portal && npm run validate:paddle-webhook-gateway-boundary && npm run validate:private-beta && node scripts/build-assets.js && node scripts/validate-brand-assets.js"
+  command = "npm run build:identity && npm run validate:identity && npm run validate:account-lifecycle && npm run validate:customer-intelligence && npm run validate:customer-dashboard && npm run validate:customer-compare && npm run validate:customer-management && npm run validate:customer-portfolio && npm run validate:customer-lifecycle && npm run validate:customer-export && npm run validate:customer-discovery && npm run validate:customer-entitlements && npm run validate:evaluation-quota-boundary && npm run validate:private-beta-operations-boundary && npm run validate:paddle-customer-checkout && npm run validate:paddle-customer-portal && npm run validate:paddle-webhook-gateway-boundary && npm run validate:paddle-sandbox-payment-link && npm run validate:private-beta && node scripts/build-assets.js && node scripts/validate-brand-assets.js"
   publish = "."
 
 [functions]
@@ -10,6 +10,6 @@
 # validates authentication boundaries and approved brand assets, then publishes
 # the repository root. The SaaS API bridge remains environment-gated and disabled
 # unless separately approved in a non-production deploy context.
-# The authenticated Paddle checkout path and provider-hosted customer portal
-# handoff are continuously validated, while the provider-facing Paddle webhook
-# remains excluded from the customer gateway.
+# The authenticated Paddle checkout path, provider-hosted customer portal handoff,
+# and sandbox-only payment-link page are continuously validated, while the
+# provider-facing Paddle webhook remains excluded from the customer gateway.

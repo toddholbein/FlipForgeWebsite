@@ -16,6 +16,9 @@ on:
       - "scripts/validate-saas-customer-entitlements.mjs"
       - "scripts/validate-saas-private-beta-operations-boundary.mjs"
       - "scripts/validate-saas-private-beta-readiness.mjs"
+      - "scripts/validate-saas-paddle-sandbox-payment-link.mjs"
+      - "assets/js/paddle-sandbox-checkout.js"
+      - "assets/css/paddle-sandbox-checkout.css"
       - "netlify.toml"
       - "package.json"
       - "_redirects"
@@ -62,10 +65,12 @@ jobs:
           node --check saas-prototype/customer-entitlements.js
           node --check saas-prototype/private-beta.js
           node --check saas-prototype/serve.mjs
+          node --check assets/js/paddle-sandbox-checkout.js
           node --check scripts/validate-saas-customer-entitlements.mjs
+          node --check scripts/validate-saas-paddle-sandbox-payment-link.mjs
 
       - name: Run exact Netlify build command
-        run: npm run build:identity && npm run validate:identity && npm run validate:account-lifecycle && npm run validate:customer-intelligence && npm run validate:customer-dashboard && npm run validate:customer-compare && npm run validate:customer-management && npm run validate:customer-portfolio && npm run validate:customer-lifecycle && npm run validate:customer-export && npm run validate:customer-discovery && npm run validate:customer-entitlements && npm run validate:private-beta-operations-boundary && npm run validate:private-beta && node scripts/build-assets.js && node scripts/validate-brand-assets.js
+        run: npm run build:identity && npm run validate:identity && npm run validate:account-lifecycle && npm run validate:customer-intelligence && npm run validate:customer-dashboard && npm run validate:customer-compare && npm run validate:customer-management && npm run validate:customer-portfolio && npm run validate:customer-lifecycle && npm run validate:customer-export && npm run validate:customer-discovery && npm run validate:customer-entitlements && npm run validate:evaluation-quota-boundary && npm run validate:private-beta-operations-boundary && npm run validate:paddle-customer-checkout && npm run validate:paddle-customer-portal && npm run validate:paddle-webhook-gateway-boundary && npm run validate:paddle-sandbox-payment-link && npm run validate:private-beta && node scripts/build-assets.js && node scripts/validate-brand-assets.js
 
       - name: Run deterministic prototype checks
         run: |

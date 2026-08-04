@@ -21,7 +21,8 @@
     "validate:private-beta-operations-boundary": "node scripts/validate-saas-private-beta-operations-boundary.mjs",
     "validate:paddle-customer-checkout": "node scripts/validate-saas-paddle-customer-checkout.mjs",
     "validate:paddle-customer-portal": "node scripts/validate-saas-paddle-customer-portal.mjs",
-    "validate:paddle-webhook-gateway-boundary": "node scripts/validate-saas-paddle-webhook-gateway-boundary.mjs"
+    "validate:paddle-webhook-gateway-boundary": "node scripts/validate-saas-paddle-webhook-gateway-boundary.mjs",
+    "validate:paddle-sandbox-payment-link": "node scripts/validate-saas-paddle-sandbox-payment-link.mjs"
   },
   "dependencies": {
     "@netlify/identity": "1.2.0"

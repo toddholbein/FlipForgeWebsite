@@ -24,6 +24,7 @@
     error: null,
     notice: "",
     evaluationKeys: new Map(),
+    lastSearch: null,
     draft: { exactCardQuery: "", targetMaxBuy: "", limit: "25" }
   };
 
@@ -249,18 +250,10 @@
     state.health = data;
   }
 
-  async function search(form) {
+  async function runSearch(draft) {
     state.error = null;
     state.notice = "";
     state.data = null;
-    let draft;
-    try {
-      draft = readSearch(form);
-    } catch (error) {
-      state.error = error;
-      renderCurrent();
-      return;
-    }
     state.draft = { exactCardQuery: draft.exactCardQuery, targetMaxBuy: draft.targetMaxBuy, limit: String(draft.limit) };
     state.loading = true;
     renderCurrent();
@@ -271,6 +264,7 @@
       });
       if (!validateDiscover(result.payload, result.correlationId)) throw makeError("DISCOVER_CONTRACT_INVALID", "The provider-backed Discover response failed the FlipForge authority, evidence, or tenant contract.");
       state.data = result.payload.data;
+      state.lastSearch = { exactCardQuery: draft.exactCardQuery, targetMaxBuy: draft.targetMaxBuy, limit: draft.limit, targetMaxBuyCents: draft.targetMaxBuyCents };
       state.notice = state.data.candidateCount
         ? `${state.data.candidateCount} active candidate${state.data.candidateCount === 1 ? "" : "s"} returned from currently connected sources.`
         : state.data.provider?.available === false
@@ -285,6 +279,36 @@
       state.loading = false;
       renderCurrent();
     }
+  }
+
+  async function search(form) {
+    let draft;
+    try {
+      draft = readSearch(form);
+    } catch (error) {
+      state.error = error;
+      renderCurrent();
+      return;
+    }
+    await runSearch(draft);
+  }
+
+  async function refreshResults() {
+    if (!state.lastSearch || state.loading || state.evaluatingIndex >= 0) return;
+    await runSearch({ ...state.lastSearch });
+  }
+
+  function clearDiscovery() {
+    if (state.loading || state.evaluatingIndex >= 0) return;
+    const preservedLimit = String(state.draft.limit || state.lastSearch?.limit || "25");
+    state.data = null;
+    state.error = null;
+    state.notice = "";
+    state.lastSearch = null;
+    state.evaluationKeys.clear();
+    state.draft = { exactCardQuery: "", targetMaxBuy: "", limit: preservedLimit };
+    renderCurrent();
+    state.main?.querySelector?.('input[name="exactCardQuery"]')?.focus?.();
   }
 
   async function evaluate(index) {
@@ -318,7 +342,9 @@
   }
 
   function searchPanel() {
-    return `<section class="panel customer-discovery-search"><header class="panel-header"><div><h2>Search connected active listings</h2><p>Use an exact card identity: year, set, player, card number, parallel/base, and grade when applicable. Card number is required during private beta.</p></div></header><div class="panel-body"><form data-customer-discovery-form class="customer-discovery-form"><label><span>Exact card identity</span><input name="exactCardQuery" type="search" maxlength="500" required value="${escapeHtml(state.draft.exactCardQuery)}" placeholder="2018 Topps Chrome Shohei Ohtani #150 PSA 10" autocomplete="off"></label><label><span>Target max buy</span><input name="targetMaxBuy" type="text" inputmode="decimal" value="${escapeHtml(state.draft.targetMaxBuy)}" placeholder="Optional, e.g. 525.00" autocomplete="off"></label><label><span>Results</span><select name="limit">${[10,25,50].map(value => `<option value="${value}"${String(value) === state.draft.limit ? " selected" : ""}>${value}</option>`).join("")}</select></label><button class="button button-primary" type="submit" ${state.loading ? "disabled" : ""}>${state.loading ? "Searching…" : "Search connected sources"}</button></form></div></section>`;
+    const busy = state.loading || state.evaluatingIndex >= 0;
+    const refreshDisabled = busy || !state.lastSearch;
+    return `<section class="panel customer-discovery-search"><header class="panel-header"><div><h2>Search connected active listings</h2><p>Use an exact card identity: year, set, player, card number, parallel/base, and grade when applicable. Card number is required during private beta.</p></div></header><div class="panel-body"><form data-customer-discovery-form class="customer-discovery-form"><label><span>Exact card identity</span><input name="exactCardQuery" type="search" maxlength="500" required value="${escapeHtml(state.draft.exactCardQuery)}" placeholder="2018 Topps Chrome Shohei Ohtani #150 PSA 10" autocomplete="off"></label><label><span>Target max buy</span><input name="targetMaxBuy" type="text" inputmode="decimal" value="${escapeHtml(state.draft.targetMaxBuy)}" placeholder="Optional, e.g. 525.00" autocomplete="off"></label><label><span>Results</span><select name="limit">${[10,25,50].map(value => `<option value="${value}"${String(value) === state.draft.limit ? " selected" : ""}>${value}</option>`).join("")}</select></label><button class="button button-primary" type="submit" ${busy ? "disabled" : ""}>${state.loading ? "Searching…" : "Search connected sources"}</button><button class="button button-secondary" type="button" data-discovery-refresh ${refreshDisabled ? "disabled" : ""}>${state.loading && state.lastSearch ? "Refreshing…" : "Refresh results"}</button><button class="button button-secondary" type="button" data-discovery-clear ${busy ? "disabled" : ""}>Clear / New search</button></form></div></section>`;
   }
 
   function providerPanel() {
@@ -359,6 +385,12 @@
     form?.addEventListener("submit", event => {
       event.preventDefault();
       if (!state.loading && state.evaluatingIndex < 0) search(form);
+    });
+    state.main?.querySelector?.("[data-discovery-refresh]")?.addEventListener("click", () => {
+      if (!state.loading && state.evaluatingIndex < 0) refreshResults();
+    });
+    state.main?.querySelector?.("[data-discovery-clear]")?.addEventListener("click", () => {
+      if (!state.loading && state.evaluatingIndex < 0) clearDiscovery();
     });
     state.main?.querySelectorAll?.("[data-discovery-evaluate]").forEach(button => {
       button.addEventListener("click", () => {

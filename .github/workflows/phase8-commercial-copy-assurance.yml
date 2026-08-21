@@ -9,7 +9,9 @@ on:
       - 'beta-terms.html'
       - 'terms.html'
       - 'refund.html'
+      - 'assets/js/marketing-v3.js'
       - 'scripts/validate-phase8-commercial-copy.mjs'
+      - 'scripts/validate-homepage-information-architecture.mjs'
       - '.github/workflows/phase8-commercial-copy-assurance.yml'
   workflow_dispatch:
 
@@ -30,7 +32,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Parse validator
-        run: node --check scripts/validate-phase8-commercial-copy.mjs
+      - name: Parse validators
+        run: |
+          node --check scripts/validate-phase8-commercial-copy.mjs
+          node --check scripts/validate-homepage-information-architecture.mjs
       - name: Validate locked commercial copy
         run: node scripts/validate-phase8-commercial-copy.mjs
+      - name: Validate concise homepage information architecture
+        run: node scripts/validate-homepage-information-architecture.mjs

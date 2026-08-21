@@ -20,6 +20,7 @@ const requiredFiles = [
   'assets/images/flipforge-traceback-guidance.svg',
   'site.webmanifest',
   'index.html',
+  'product.html',
 ];
 
 for (const file of requiredFiles) requireFile(file);
@@ -27,11 +28,14 @@ for (const file of requiredFiles) requireFile(file);
 const index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const homepageFailures = [];
 
-if (!index.includes('assets/images/flipforge-grading-scenario.svg')) {
-  homepageFailures.push('native grading scenario SVG');
+if (!index.includes('assets/images/flipforge-homepage-dashboard.svg')) {
+  homepageFailures.push('primary homepage product visual');
 }
-if (!index.includes('assets/images/flipforge-traceback-guidance.svg')) {
-  homepageFailures.push('native traceback SVG');
+if (!index.includes('id="try-flipforge"')) {
+  homepageFailures.push('guided FlipForge demo');
+}
+if (!index.includes('href="product.html"')) {
+  homepageFailures.push('deep Product route');
 }
 if (index.includes('assets/images/grading-scenario-analysis.webp')) {
   homepageFailures.push('legacy grading WebP reference removed');
@@ -44,6 +48,18 @@ if (homepageFailures.length) {
   throw new Error(`Homepage brand asset validation failed: ${homepageFailures.join(', ')}`);
 }
 
+const product = fs.readFileSync(path.join(root, 'product.html'), 'utf8');
+const productFailures = [];
+if (!product.includes('id="grading"') || !product.includes('id="grade-form"')) {
+  productFailures.push('native grading scenario experience');
+}
+if (!product.includes('assets/images/flipforge-traceback-guidance.svg')) {
+  productFailures.push('native traceback SVG');
+}
+if (productFailures.length) {
+  throw new Error(`Product brand asset validation failed: ${productFailures.join(', ')}`);
+}
+
 const htmlFiles = fs.readdirSync(root).filter((name) => name.endsWith('.html'));
 for (const filename of htmlFiles) {
   const html = fs.readFileSync(path.join(root, filename), 'utf8');
@@ -51,7 +67,7 @@ for (const filename of htmlFiles) {
 
   const failures = [];
   if (!html.includes('assets/brand/flipforge-mark.svg')) failures.push('approved header mark');
-  if (!html.includes('Card Intelligence')) failures.push('Card Intelligence identity line');
+  if (!html.includes('Card Intelligence') && !html.includes('CARD INTELLIGENCE')) failures.push('Card Intelligence identity line');
   if (html.includes('Card Value Intelligence') || html.includes('CARD VALUE INTELLIGENCE')) failures.push('retired Card Value Intelligence descriptor removed');
   if (!html.includes('assets/css/brand-v2.css')) failures.push('brand-v2 stylesheet');
   if (!html.includes('assets/brand/flipforge-app-icon-dark.svg')) failures.push('approved favicon');

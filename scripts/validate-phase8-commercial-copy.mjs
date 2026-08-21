@@ -15,40 +15,39 @@ function forbidText(label, text, needle) {
   if (text.includes(needle)) failures.push(`${label}: forbidden ${JSON.stringify(needle)}`);
 }
 
-requireText('homepage', homepage, 'Planned Launch Pricing');
-requireText('homepage', homepage, '<h3>Scout</h3>');
-requireText('homepage', homepage, '<li>10 evaluations per month</li>');
-requireText('homepage', homepage, '<li>75 evaluations per month</li>');
-requireText('homepage', homepage, '<li>300 evaluations per month</li>');
-requireText('homepage', homepage, 'Forge Heat intelligence');
-requireText('homepage', homepage, 'Tracked cards subject to reasonable-use and technical limits');
-requireText('homepage', homepage, 'Advanced PSA intelligence and grade economics');
-requireText('homepage', homepage, 'CSV exports');
-forbidText('homepage', homepage, '<li>5 evaluations per month</li>');
+// Homepage stays concise and routes detailed commercial information to Pricing.
+requireText('homepage', homepage, 'Before You Buy, <span>Know Why.</span>');
+requireText('homepage', homepage, 'More than comps.');
+requireText('homepage', homepage, 'href="pricing.html"');
+requireText('homepage', homepage, 'Controlled Private Beta');
+requireText('homepage', homepage, 'Request Beta Access');
+requireText('homepage', homepage, 'CARD INTELLIGENCE');
+forbidText('homepage', homepage, '<div class="pricing-grid">');
+forbidText('homepage', homepage, '<h3>Scout</h3>');
 forbidText('homepage', homepage, 'Most popular');
 
+// Pricing owns detailed plan and billing language.
 requireText('pricing', pricing, 'Planned Launch Pricing');
-requireText('pricing', pricing, '10 evaluations each month');
-requireText('pricing', pricing, '75 evaluations each month');
-requireText('pricing', pricing, '300 evaluations each month');
-requireText('pricing', pricing, '<tr><td>Monthly evaluations</td><td>10</td><td>75</td><td>300</td></tr>');
+requireText('pricing', pricing, '10 planned evaluations per month');
+requireText('pricing', pricing, '75 planned evaluations per month');
+requireText('pricing', pricing, '300 planned evaluations per month');
+requireText('pricing', pricing, '<tr><td>Planned monthly evaluations</td><td>10</td><td>75</td><td>300</td></tr>');
 forbidText('pricing', pricing, '<li>5 evaluations each month</li>');
 forbidText('pricing', pricing, '<tr><td>Monthly evaluations</td><td>5</td>');
 forbidText('pricing', pricing, 'Most popular');
 
-requireText('pricing', pricing, 'Forge Heat intelligence');
-requireText('pricing', pricing, '<tr><td>Forge Heat</td><td class="no">No</td><td class="no">No</td><td class="yes">Yes</td></tr>');
+requireText('pricing', pricing, 'Forge Heat™ beta/roadmap access when available');
+requireText('pricing', pricing, '<tr><td>Forge Heat™</td><td class="no">No</td><td class="no">No</td><td class="varies">Beta / roadmap</td></tr>');
 requireText('pricing', pricing, 'Tracked cards subject to reasonable-use and technical limits');
 requireText('pricing', pricing, '<td>Reasonable use*</td>');
 
 requireText('pricing', pricing, '$14.99 <small>/ month</small>');
 requireText('pricing', pricing, '$29.99 <small>/ month</small>');
-requireText('pricing', pricing, '$19.99 per month, locked for 12 months');
-requireText('pricing', pricing, 'Private Beta participation does not enroll you automatically');
-requireText('pricing', pricing, 'Founding Pro requires a separate explicit checkout');
-requireText('pricing', pricing, 'No permanent lifetime pricing');
-requireText('pricing', pricing, 'Private Beta does not automatically convert to Scout, Collector, Pro, or any paid subscription');
-requireText('pricing', pricing, 'Paid checkout is processed by Paddle, which acts as the Merchant of Record');
+requireText('pricing', pricing, 'No paid checkout is active during private beta.');
+requireText('pricing', pricing, 'Beta participation does not enroll a user in Scout, Collector, Pro, or any future paid plan.');
+requireText('pricing', pricing, 'Any future paid checkout must be a separate, deliberate customer action after commercial launch review.');
+requireText('pricing', pricing, 'Private Beta does not automatically convert to Scout, Collector, Pro, or any paid subscription.');
+requireText('pricing', pricing, 'If Paddle is used at commercial launch, it will act as Merchant of Record for transactions it processes.');
 
 requireText('beta terms', betaTerms, '<h2>Beta and paid plans</h2>');
 requireText('beta terms', betaTerms, 'Private Beta participation does not automatically convert to Scout, Collector, Pro, Founding Pro, or any paid subscription');
@@ -89,4 +88,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('PASS: Phase 8 homepage, pricing, Private Beta, subscription terms, and refund copy remain commercially consistent.');
+console.log('PASS: concise homepage routing, planned pricing, Private Beta, subscription terms, and refund copy remain commercially consistent.');

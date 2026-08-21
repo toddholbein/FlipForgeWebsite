@@ -183,16 +183,22 @@ for (const htmlPath of htmlFiles) {
 
   const failures = [];
   if (!html.includes('assets/brand/flipforge-mark.svg')) failures.push('approved header mark');
-  if (!html.includes('Card Intelligence')) failures.push('Card Intelligence identity line');
+  if (!html.includes('Card Intelligence') && !html.includes('CARD INTELLIGENCE')) failures.push('Card Intelligence identity line');
   if (html.includes('Card Value Intelligence') || html.includes('CARD VALUE INTELLIGENCE')) failures.push('retired Card Value Intelligence descriptor removed');
   if (!html.includes('assets/css/brand-v2.css')) failures.push('perfected brand stylesheet');
   if (!html.includes('assets/brand/flipforge-app-icon-dark.svg')) failures.push('approved favicon');
   if (html.includes('Signal. Confidence. Advantage.')) failures.push('deprecated tagline removal');
 
   if (path.basename(htmlPath) === 'index.html') {
-    if (!html.includes('assets/images/flipforge-grading-scenario.svg')) failures.push('native grading scenario visual');
-    if (!html.includes('assets/images/flipforge-traceback-guidance.svg')) failures.push('native traceback visual');
+    if (!html.includes('assets/images/flipforge-homepage-dashboard.svg')) failures.push('homepage product visual');
+    if (!html.includes('id="try-flipforge"')) failures.push('homepage guided product demo');
+    if (!html.includes('href="product.html"')) failures.push('homepage deep-product route');
     if (!html.includes('assets/js/section-navigation.js')) failures.push('deterministic section navigation');
+  }
+
+  if (path.basename(htmlPath) === 'product.html') {
+    if (!html.includes('id="grading"') || !html.includes('id="grade-form"')) failures.push('native grading scenario experience');
+    if (!html.includes('assets/images/flipforge-traceback-guidance.svg')) failures.push('native traceback visual');
   }
 
   if (failures.length) {

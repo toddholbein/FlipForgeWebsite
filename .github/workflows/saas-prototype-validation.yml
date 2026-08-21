@@ -98,7 +98,7 @@ jobs:
             if (html.includes('Signal. Confidence. Advantage.')) {
               failures.push(`${name}: deprecated brand line remains`);
             }
-            if (hasHeader && !html.includes('Card Intelligence')) {
+            if (hasHeader && !html.includes('Card Intelligence') && !html.includes('CARD INTELLIGENCE')) {
               failures.push(`${name}: Card Intelligence is missing`);
             }
             if (hasHeader && (html.includes('Card Value Intelligence') || html.includes('CARD VALUE INTELLIGENCE'))) {

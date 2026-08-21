@@ -5,6 +5,7 @@
   const evaluationAdapter = window.FlipForgeStagingEvaluationAdapter;
   const cardIntelligenceAdapter = window.FlipForgeCustomerCardIntelligence;
   const compareAdapter = window.FlipForgeCustomerCompare;
+  const psaAdapter = window.FlipForgeCustomerPsaAdvisor;
   const lifecycleAdapter = window.FlipForgeCustomerLifecycle;
   const managementAdapter = window.FlipForgeCustomerManagement;
   const portfolioAdapter = window.FlipForgeCustomerPortfolio;
@@ -130,6 +131,15 @@
             : "";
           showCustomerIntelligenceBanner();
           compareAdapter.render(main, preferredLeftId || "");
+          focusMain();
+          return;
+        }
+        if (route === "psa-advisor"
+            && psaAdapter
+            && typeof psaAdapter.render === "function"
+            && psaAdapter.isEligible()) {
+          showCustomerIntelligenceBanner();
+          psaAdapter.render(main, id);
           focusMain();
           return;
         }

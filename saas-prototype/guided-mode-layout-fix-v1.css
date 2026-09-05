@@ -3,6 +3,20 @@
  * preventing the fixed guide from covering primary workspace content.
  */
 
+/* Search-first private-beta lock.
+ * Guided Mode remains available as the contextual side panel, but the legacy
+ * first-run welcome modal may not cover or lock the customer workspace after
+ * sign-in. A direct Discover link must expose the card-entry workflow
+ * immediately instead of forcing onboarding instructions first.
+ */
+.ff-guide-modal-backdrop {
+  display: none !important;
+}
+
+body.ff-guide-modal-open {
+  overflow: auto !important;
+}
+
 @media (min-width: 1480px) {
   body:has(.ff-guide-panel) #main-content {
     padding-right: 414px;

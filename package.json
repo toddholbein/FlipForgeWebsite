@@ -40,7 +40,7 @@
     "validate:paddle-customer-portal": "node scripts/validate-saas-paddle-customer-portal.mjs",
     "validate:paddle-webhook-gateway-boundary": "node scripts/validate-saas-paddle-webhook-gateway-boundary.mjs",
     "validate:homepage-progression": "node scripts/validate-homepage-progression.mjs",
-    "validate:sitewide-ux": "node scripts/validate-sitewide-ux.mjs",
+    "validate:sitewide-ux": "node scripts/validate-sitewide-ux.mjs && node scripts/validate-guided-mode-search-first.mjs",
     "validate:beta-acquisition": "node scripts/validate-beta-acquisition-onboarding.mjs",
     "validate:beta-operator": "node scripts/validate-beta-operator-current.mjs"
   },
